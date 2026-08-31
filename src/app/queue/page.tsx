@@ -206,17 +206,31 @@ export default function QueuePage() {
                   <div className="bg-court-dark">
                     {inProgress && teamA && teamB ? (
                       <div className="grid grid-cols-2">
-                        <div className="px-3 py-3 border-r border-white/10">
+                        <div className="px-3 py-3 border-r border-white/10 space-y-1.5">
                           <p className="font-mono text-[10px] uppercase tracking-wide text-progress-light text-progress mb-1">
                             Team A
                           </p>
-                          <p className="text-lg">{teamA.map((p) => p?.name).join(" & ")}</p>
+                          {teamA.map((p) => (
+                            <p key={p?.id} className="text-lg flex items-center gap-2">
+                              {p?.name}
+                              <span className="text-[10px] font-mono text-white/40 border border-white/20 rounded-card px-1.5 py-0.5">
+                                {p?.skill_level}
+                              </span>
+                            </p>
+                          ))}
                         </div>
-                        <div className="px-3 py-3">
+                        <div className="px-3 py-3 space-y-1.5">
                           <p className="font-mono text-[10px] uppercase tracking-wide text-rest mb-1">
                             Team B
                           </p>
-                          <p className="text-lg">{teamB.map((p) => p?.name).join(" & ")}</p>
+                          {teamB.map((p) => (
+                            <p key={p?.id} className="text-lg flex items-center gap-2">
+                              {p?.name}
+                              <span className="text-[10px] font-mono text-white/40 border border-white/20 rounded-card px-1.5 py-0.5">
+                                {p?.skill_level}
+                              </span>
+                            </p>
+                          ))}
                         </div>
                       </div>
                     ) : (
