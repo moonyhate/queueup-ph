@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Player } from "@/lib/types";
 import { skillBadgeColor } from "@/lib/matching";
 import { formatWaitTime } from "@/lib/format";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface Props {
   waiting: Player[];
@@ -25,6 +26,8 @@ export default function WaitingQueueList({
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  const [confirming, setConfirming] = useState<Player | null>(null);
 
   return (
     <div>
@@ -67,7 +70,7 @@ export default function WaitingQueueList({
               Rest
             </button>
             <button
-              onClick={() => onCheckout(p)}
+              onClick={() => setConfirming(p)}
               className="text-xs font-mono uppercase text-waiting border border-waiting/40 rounded-card px-2 py-2 tap-target hover:bg-waiting/10 transition-colors"
             >
               Out
@@ -102,7 +105,7 @@ export default function WaitingQueueList({
                   Back in
                 </button>
                 <button
-                  onClick={() => onCheckout(p)}
+                  onClick={() => setConfirming(p)}
                   className="text-xs font-mono uppercase text-waiting border border-waiting/40 rounded-card px-2 py-2 tap-target hover:bg-waiting/10 transition-colors"
                 >
                   Out
@@ -111,6 +114,19 @@ export default function WaitingQueueList({
             ))}
           </ul>
         </>
+      )}
+
+      {confirming && (
+        <ConfirmDialog
+          title={`Check out ${confirming.name}?`}
+          message="They'll be removed from the queue entirely. This can't be undone -- you'd need to add them again from scratch."
+          confirmLabel="Check out"
+          onConfirm={() => {
+            onCheckout(confirming);
+            setConfirming(null);
+          }}
+          onCancel={() => setConfirming(null)}
+        />
       )}
     </div>
   );
