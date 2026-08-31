@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Player } from "@/lib/types";
 import { skillBadgeColor } from "@/lib/matching";
+import { formatWaitTime } from "@/lib/format";
 
 interface Props {
   waiting: Player[];
@@ -18,6 +20,12 @@ export default function WaitingQueueList({
   onResume,
   onCheckout,
 }: Props) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
   return (
     <div>
       <h2 className="font-display text-3xl leading-none mb-3">
@@ -38,6 +46,9 @@ export default function WaitingQueueList({
               {i + 1}
             </span>
             <span className="flex-1 font-medium">{p.name}</span>
+            <span className="text-xs font-mono text-waiting whitespace-nowrap">
+              {formatWaitTime(p.checked_in_at, now)}
+            </span>
             <span
               className={`text-xs px-2 py-1 rounded-card border font-mono ${skillBadgeColor(
                 p.skill_level
