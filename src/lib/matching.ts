@@ -81,6 +81,24 @@ function splitIntoTeams(group: Player[]): [Player[], Player[]] {
   return [teamA, teamB];
 }
 
+/**
+ * Pure preview of the next N matches that *would* form from this queue,
+ * without mutating anything or touching the database. Used to show an
+ * "Up next" panel so the organizer and players can see what's coming
+ * before a court actually frees up.
+ */
+export function previewNextMatches(waitingQueue: Player[], count: number): MatchResult[] {
+  const previews: MatchResult[] = [];
+  let remaining = waitingQueue;
+  for (let i = 0; i < count; i++) {
+    const result = formNextMatch(remaining);
+    if (!result) break;
+    previews.push(result);
+    remaining = result.remainingQueue;
+  }
+  return previews;
+}
+
 export function skillBadgeColor(skill: SkillLevel): string {
   switch (skill) {
     case "Beginner":
