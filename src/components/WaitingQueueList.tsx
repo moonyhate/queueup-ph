@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Users, Coffee } from "lucide-react";
 import { Player } from "@/lib/types";
 import { skillBadgeColor } from "@/lib/matching";
 import { formatWaitTime } from "@/lib/format";
@@ -31,7 +32,8 @@ export default function WaitingQueueList({
 
   return (
     <div>
-      <h2 className="font-display text-3xl leading-none mb-3">
+      <h2 className="font-display text-3xl leading-none mb-3 flex items-center gap-2">
+        <Users size={22} className="text-court" />
         Waiting queue
       </h2>
       {waiting.length === 0 && (
@@ -81,7 +83,8 @@ export default function WaitingQueueList({
 
       {resting.length > 0 && (
         <>
-          <h3 className="font-display text-2xl leading-none mb-3 text-rest">
+          <h3 className="font-display text-2xl leading-none mb-3 text-rest flex items-center gap-2">
+            <Coffee size={18} />
             Resting
           </h3>
           <ul className="space-y-2">
