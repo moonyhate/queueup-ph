@@ -26,7 +26,7 @@ export default function AddPlayerModal({ onAdd, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 bg-ink/50 flex items-end sm:items-center justify-center z-50 px-4">
-      <div className="w-full max-w-md bg-white rounded-t-card sm:rounded-card p-6 pb-8">
+      <div className="w-full max-w-md bg-white rounded-t-card sm:rounded-card p-6 pb-8 shadow-2xl">
         <div className="flex items-center justify-between mb-5">
           <h2 className="font-display text-3xl leading-none">Add player</h2>
           <button
