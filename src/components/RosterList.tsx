@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { UserCheck } from "lucide-react";
 import { Player } from "@/lib/types";
 import { skillBadgeColor } from "@/lib/matching";
 import ConfirmDialog from "./ConfirmDialog";
@@ -25,7 +26,8 @@ export default function RosterList({
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-display text-3xl leading-none">
+        <h2 className="font-display text-3xl leading-none flex items-center gap-2">
+          <UserCheck size={22} className="text-court" />
           Not yet here ({notArrived.length})
         </h2>
         <button
