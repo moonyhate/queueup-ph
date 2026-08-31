@@ -127,16 +127,15 @@ export default function QueuePage() {
   }
 
   return (
-    <div className="min-h-screen bg-court-dark text-surface">
-      <header className="flex items-center justify-between px-6 sm:px-10 py-6 border-b border-white/10 flex-wrap gap-4">
+    <div className="min-h-screen bg-surface text-ink">
+      <header className="flex items-center justify-between px-6 sm:px-10 py-6 border-b border-line flex-wrap gap-4">
         <div>
           <span className="font-display text-3xl sm:text-4xl leading-none">QueueUp PH</span>
-          <p className="font-mono text-xs uppercase tracking-wide text-white/50 mt-1">
+          <p className="font-mono text-xs uppercase tracking-wide text-waiting mt-1">
             {session.game_format}
           </p>
         </div>
         <StatsBar
-          dark
           courtsInPlay={courts.filter((c) => c.status === "in_progress").length}
           courtsTotal={courts.length}
           playersTotal={players.filter((p) => p.status !== "checked_out").length}
@@ -145,23 +144,23 @@ export default function QueuePage() {
         <div className="flex items-center gap-4">
           <Link
             href="/leaderboard"
-            className="flex items-center gap-1.5 font-mono text-xs sm:text-sm uppercase border border-white/30 rounded-card px-4 py-2"
+            className="flex items-center gap-1.5 font-mono text-xs sm:text-sm uppercase border border-ink/20 rounded-card px-4 py-2 bg-white shadow-sm hover:shadow-md transition-shadow"
           >
             <Trophy size={14} />
             Leaderboard
           </Link>
           <div className="hidden sm:flex items-center gap-3">
             <div className="text-center">
-              <div className="bg-white p-2 rounded-card">
+              <div className="bg-white p-2 rounded-card border border-line">
                 <QRCodeSVG value={selfUrl || "/"} size={56} />
               </div>
-              <p className="font-mono text-[9px] uppercase text-white/40 mt-1">Watch</p>
+              <p className="font-mono text-[9px] uppercase text-waiting mt-1">Watch</p>
             </div>
             <div className="text-center">
-              <div className="bg-white p-2 rounded-card">
+              <div className="bg-white p-2 rounded-card border border-line">
                 <QRCodeSVG value={checkinUrl || "/checkin"} size={56} />
               </div>
-              <p className="font-mono text-[9px] uppercase text-ball mt-1">Check in</p>
+              <p className="font-mono text-[9px] uppercase text-court mt-1">Check in</p>
             </div>
           </div>
         </div>
@@ -169,7 +168,7 @@ export default function QueuePage() {
 
       <main className="px-6 sm:px-10 py-8 grid lg:grid-cols-[1.4fr_1fr] gap-8">
         <section>
-          <h2 className="font-display text-3xl sm:text-4xl leading-none mb-4 text-ball flex items-center gap-2">
+          <h2 className="font-display text-3xl sm:text-4xl leading-none mb-4 text-court flex items-center gap-2">
             <LayoutGrid size={26} />
             Courts
           </h2>
@@ -181,65 +180,67 @@ export default function QueuePage() {
               return (
                 <div
                   key={court.id}
-                  className={`rounded-card overflow-hidden border-2 shadow-lg ${
-                    inProgress ? "border-progress" : "border-ball"
+                  className={`rounded-card overflow-hidden border-2 shadow-md bg-white ${
+                    inProgress ? "border-progress" : "border-court"
                   }`}
                 >
                   <div
-                    className={`flex items-center justify-between px-4 py-3 ${
-                      inProgress ? "bg-progress" : "bg-ball"
+                    className={`flex items-center justify-between px-4 py-3 text-white ${
+                      inProgress ? "bg-progress" : "bg-court"
                     }`}
                   >
-                    <span
-                      className={`font-display text-2xl leading-none ${
-                        inProgress ? "text-white" : "text-ink"
-                      }`}
-                    >
+                    <span className="font-display text-2xl leading-none">
                       Court {court.court_number}
                     </span>
                     {inProgress ? (
-                      <span className="flex items-center gap-2 font-mono text-sm text-white">
+                      <span className="flex items-center gap-2 font-mono text-sm">
                         <span className="live-dot w-2 h-2 rounded-full bg-white inline-block" />
                         <ElapsedTimer startedAt={court.started_at as string} />
                       </span>
                     ) : (
-                      <span className="font-mono text-xs uppercase text-ink">Open</span>
+                      <span className="font-mono text-xs uppercase">Open</span>
                     )}
                   </div>
-                  <div className="bg-court-dark">
-                    {inProgress && teamA && teamB ? (
-                      <div className="grid grid-cols-2">
-                        <div className="px-3 py-3 border-r border-white/10 space-y-1.5">
-                          <p className="font-mono text-[10px] uppercase tracking-wide text-progress-light text-progress mb-1">
-                            Team A
+                  {inProgress && teamA && teamB ? (
+                    <div className="grid grid-cols-2">
+                      <div className="px-3 py-3 border-r border-line space-y-1.5">
+                        <p className="font-mono text-[10px] uppercase tracking-wide text-progress mb-1">
+                          Team A
+                        </p>
+                        {teamA.map((p) => (
+                          <p key={p?.id} className="text-lg flex items-center gap-2">
+                            {p?.name}
+                            <span
+                              className={`text-[10px] px-1.5 py-0.5 rounded-card border font-mono ${
+                                p ? skillBadgeColor(p.skill_level) : ""
+                              }`}
+                            >
+                              {p?.skill_level}
+                            </span>
                           </p>
-                          {teamA.map((p) => (
-                            <p key={p?.id} className="text-lg flex items-center gap-2">
-                              {p?.name}
-                              <span className="text-[10px] font-mono text-white/40 border border-white/20 rounded-card px-1.5 py-0.5">
-                                {p?.skill_level}
-                              </span>
-                            </p>
-                          ))}
-                        </div>
-                        <div className="px-3 py-3 space-y-1.5">
-                          <p className="font-mono text-[10px] uppercase tracking-wide text-rest mb-1">
-                            Team B
-                          </p>
-                          {teamB.map((p) => (
-                            <p key={p?.id} className="text-lg flex items-center gap-2">
-                              {p?.name}
-                              <span className="text-[10px] font-mono text-white/40 border border-white/20 rounded-card px-1.5 py-0.5">
-                                {p?.skill_level}
-                              </span>
-                            </p>
-                          ))}
-                        </div>
+                        ))}
                       </div>
-                    ) : (
-                      <p className="text-white/50 px-4 py-8 text-center">Waiting for players</p>
-                    )}
-                  </div>
+                      <div className="px-3 py-3 space-y-1.5">
+                        <p className="font-mono text-[10px] uppercase tracking-wide text-rest mb-1">
+                          Team B
+                        </p>
+                        {teamB.map((p) => (
+                          <p key={p?.id} className="text-lg flex items-center gap-2">
+                            {p?.name}
+                            <span
+                              className={`text-[10px] px-1.5 py-0.5 rounded-card border font-mono ${
+                                p ? skillBadgeColor(p.skill_level) : ""
+                              }`}
+                            >
+                              {p?.skill_level}
+                            </span>
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-waiting px-4 py-8 text-center">Waiting for players</p>
+                  )}
                 </div>
               );
             })}
@@ -249,39 +250,36 @@ export default function QueuePage() {
         <section>
           {upNext.length > 0 && (
             <div className="mb-8">
-              <UpNextPreview previews={upNext} dark />
+              <UpNextPreview previews={upNext} />
             </div>
           )}
 
-          <h2 className="font-display text-3xl sm:text-4xl leading-none mb-4 text-white/70 flex items-center gap-2">
-            <Users size={26} />
+          <h2 className="font-display text-3xl sm:text-4xl leading-none mb-4 flex items-center gap-2">
+            <Users size={26} className="text-court" />
             Waiting queue
           </h2>
           <ol className="space-y-2">
             {waiting.map((p, i) => (
               <li
                 key={p.id}
-                className="flex items-center gap-3 rounded-card bg-white/5 px-4 py-3"
+                className="flex items-center gap-3 rounded-card border border-line bg-white shadow-sm px-4 py-3"
               >
-                <span className="scoreboard-num text-2xl w-8 text-white/40">{i + 1}</span>
+                <span className="scoreboard-num text-2xl w-8 text-waiting">{i + 1}</span>
                 <span className="flex-1 text-lg font-medium">{p.name}</span>
-                <span className="text-xs font-mono text-white/40 whitespace-nowrap">
+                <span className="text-xs font-mono text-waiting whitespace-nowrap">
                   {formatWaitTime(p.checked_in_at, now)}
                 </span>
                 <span
-                  className={`text-xs px-2 py-1 rounded-card border font-mono bg-transparent ${skillBadgeColor(
+                  className={`text-xs px-2 py-1 rounded-card border font-mono ${skillBadgeColor(
                     p.skill_level
-                  )
-                    .replace("text-court-dark", "text-white")
-                    .replace("text-progress", "text-white")
-                    .replace("text-ink", "text-white")}`}
+                  )}`}
                 >
                   {p.skill_level}
                 </span>
               </li>
             ))}
             {waiting.length === 0 && (
-              <p className="text-white/40">No one in line.</p>
+              <p className="text-waiting">No one in line.</p>
             )}
           </ol>
 
@@ -292,7 +290,7 @@ export default function QueuePage() {
               </h3>
               <ul className="space-y-1">
                 {resting.map((p) => (
-                  <li key={p.id} className="text-rest/90">
+                  <li key={p.id} className="text-rest">
                     {p.name}
                   </li>
                 ))}
@@ -307,7 +305,7 @@ export default function QueuePage() {
 
 function Screen({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-court-dark text-surface flex items-center justify-center px-6 text-center">
+    <div className="min-h-screen bg-surface text-ink flex items-center justify-center px-6 text-center">
       <div>
         <p className="font-display text-4xl mb-3">QueueUp PH</p>
         {children}
