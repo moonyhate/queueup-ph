@@ -7,9 +7,18 @@ import { Player } from "@/lib/types";
 interface Props {
   previews: MatchResult[];
   dark?: boolean;
+  openCourtNumber?: number;
+  onSendToCourt?: () => void;
+  sending?: boolean;
 }
 
-export default function UpNextPreview({ previews, dark = false }: Props) {
+export default function UpNextPreview({
+  previews,
+  dark = false,
+  openCourtNumber,
+  onSendToCourt,
+  sending = false,
+}: Props) {
   if (previews.length === 0) return null;
 
   return (
@@ -41,7 +50,7 @@ export default function UpNextPreview({ previews, dark = false }: Props) {
                   dark ? "text-white/40" : "text-waiting"
                 }`}
               >
-                {i === 0 ? "As soon as a court opens" : `Then, match ${i + 1}`}
+                {i === 0 ? "First in line" : `Then, match ${i + 1}`}
               </span>
             </div>
             <div className={`text-sm space-y-1 ${dark ? "text-white" : "text-ink"}`}>
@@ -51,6 +60,15 @@ export default function UpNextPreview({ previews, dark = false }: Props) {
               </p>
               <TeamLine players={match.teamB} dark={dark} />
             </div>
+            {i === 0 && onSendToCourt && openCourtNumber && (
+              <button
+                onClick={onSendToCourt}
+                disabled={sending}
+                className="tap-target w-full mt-3 bg-court text-white font-mono text-xs uppercase rounded-card disabled:opacity-50"
+              >
+                {sending ? "Sending..." : `Send to Court ${openCourtNumber}`}
+              </button>
+            )}
           </div>
         ))}
       </div>
