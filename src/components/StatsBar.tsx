@@ -21,19 +21,33 @@ export default function StatsBar({
     { label: "Queue", value: queueCount },
   ];
 
-  return (
-    <div className="flex items-center gap-5 font-mono text-xs uppercase tracking-wide">
-      {items.map((item) => (
-        <span key={item.label} className={dark ? "text-white/60" : "text-waiting"}>
-          {item.label}{" "}
-          <span
-            className={`scoreboard-num text-base normal-case ${
-              dark ? "text-ball" : "text-court"
-            }`}
-          >
-            {item.value}
+  if (dark) {
+    return (
+      <div className="flex items-center gap-5 font-mono text-xs uppercase tracking-wide">
+        {items.map((item) => (
+          <span key={item.label} className="text-white/60">
+            {item.label}{" "}
+            <span className="scoreboard-num text-base normal-case text-ball">
+              {item.value}
+            </span>
           </span>
-        </span>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1 bg-white rounded-card shadow-sm border border-line overflow-hidden">
+      {items.map((item, i) => (
+        <div
+          key={item.label}
+          className={`px-4 py-2 text-center ${i > 0 ? "border-l border-line" : ""}`}
+        >
+          <p className="font-mono text-[10px] uppercase tracking-wide text-waiting">
+            {item.label}
+          </p>
+          <p className="scoreboard-num text-xl text-court">{item.value}</p>
+        </div>
       ))}
     </div>
   );
