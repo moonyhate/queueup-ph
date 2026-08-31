@@ -1,7 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import {
+  Trophy,
+  Link2,
+  QrCode,
+  LogOut,
+  Pencil,
+  X,
+  Lock,
+  Plus,
+  Monitor,
+} from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { isPinUnlocked, lockPin } from "@/lib/pin";
 import { Court, Player, Session, SkillLevel } from "@/lib/types";
@@ -10,7 +21,9 @@ import PinGate from "@/components/PinGate";
 import SessionSetup from "@/components/SessionSetup";
 import AddPlayerModal from "@/components/AddPlayerModal";
 import CourtCard from "@/components/CourtCard";
+import ChoosePlayersModal from "@/components/ChoosePlayersModal";
 import WaitingQueueList from "@/components/WaitingQueueList";
+import RosterList from "@/components/RosterList";
 import StatsBar from "@/components/StatsBar";
 import UpNextPreview from "@/components/UpNextPreview";
 
@@ -54,7 +67,8 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
   const [loading, setLoading] = useState(true);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [showEditSession, setShowEditSession] = useState(false);
-  const fillingLock = useRef(false);
+  const [showChoosePlayersFor, setShowChoosePlayersFor] = useState<Court | null>(null);
+  const [sendingToCourt, setSendingToCourt] = useState(false);
 
   // ---- initial load ----
   useEffect(() => {
@@ -138,55 +152,68 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
     [players]
   );
   const resting = useMemo(() => players.filter((p) => p.status === "resting"), [players]);
+  const notArrived = useMemo(
+    () =>
+      players
+        .filter((p) => p.status === "not_arrived")
+        .sort((a, b) => new Date(a.checked_in_at).getTime() - new Date(b.checked_in_at).getTime()),
+    [players]
+  );
   const playersById = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
   const upNext = useMemo(() => previewNextMatches(waiting, 2), [waiting]);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [checkinLinkCopied, setCheckinLinkCopied] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
 
-  // ---- auto-fill open courts from the queue ----
-  useEffect(() => {
+  const openCourts = useMemo(
+    () => courts.filter((c) => c.status === "open").sort((a, b) => a.court_number - b.court_number),
+    [courts]
+  );
+  const firstOpenCourt = openCourts[0] ?? null;
+
+  // ---- assign a specific match to a specific court ----
+  async function assignMatchToCourt(court: Court, teamA: Player[], teamB: Player[]) {
     if (!session) return;
-    const openCourts = courts.filter((c) => c.status === "open");
-    if (openCourts.length === 0) return;
-    if (fillingLock.current) return;
+    setSendingToCourt(true);
+    try {
+      const startedAt = new Date().toISOString();
+      await supabase
+        .from("courts")
+        .update({
+          status: "in_progress",
+          team_a: { playerIds: teamA.map((p) => p.id) },
+          team_b: { playerIds: teamB.map((p) => p.id) },
+          started_at: startedAt,
+        })
+        .eq("id", court.id);
 
-    (async () => {
-      fillingLock.current = true;
-      try {
-        let queue = [...waiting];
-        for (const court of openCourts) {
-          const result = formNextMatch(queue);
-          if (!result) break;
-          const { teamA, teamB, remainingQueue } = result;
-          queue = remainingQueue;
+      const allFour = [...teamA, ...teamB];
+      await supabase
+        .from("players")
+        .update({ status: "playing", court_id: court.id })
+        .in(
+          "id",
+          allFour.map((p) => p.id)
+        );
 
-          const startedAt = new Date().toISOString();
-          await supabase
-            .from("courts")
-            .update({
-              status: "in_progress",
-              team_a: { playerIds: teamA.map((p) => p.id) },
-              team_b: { playerIds: teamB.map((p) => p.id) },
-              started_at: startedAt,
-            })
-            .eq("id", court.id);
+      await loadSessionData(session.id);
+    } finally {
+      setSendingToCourt(false);
+      setShowChoosePlayersFor(null);
+    }
+  }
 
-          const allFour = [...teamA, ...teamB];
-          await supabase
-            .from("players")
-            .update({ status: "playing", court_id: court.id })
-            .in(
-              "id",
-              allFour.map((p) => p.id)
-            );
-        }
-        await loadSessionData(session.id);
-      } finally {
-        fillingLock.current = false;
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [courts, waiting.length, session?.id]);
+  // ---- send the algorithm's next match to a specific court ----
+  async function handleStartNext(court: Court) {
+    const result = formNextMatch(waiting);
+    if (!result) return;
+    await assignMatchToCourt(court, result.teamA, result.teamB);
+  }
+
+  // ---- manually chosen players, sent to a specific court ----
+  async function handleAssignChosen(court: Court, teamA: Player[], teamB: Player[]) {
+    await assignMatchToCourt(court, teamA, teamB);
+  }
 
   async function handleCreateSession(courtCount: number, format: string) {
     const { data, error } = await supabase
@@ -252,7 +279,7 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
       session_id: session.id,
       name,
       skill_level: skill,
-      status: "waiting",
+      status: "not_arrived",
       checked_in_at: new Date().toISOString(),
       wins: 0,
       games_played: 0,
@@ -312,12 +339,39 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
     await loadSessionData(session.id);
   }
 
+  async function handleCheckIn(player: Player) {
+    await supabase
+      .from("players")
+      .update({ status: "waiting", checked_in_at: new Date().toISOString() })
+      .eq("id", player.id);
+    if (session) await loadSessionData(session.id);
+  }
+
+  async function handleCheckInAll() {
+    if (!session) return;
+    // Stagger checked_in_at by a few ms per player so they keep the same
+    // relative queue order they had on the roster, rather than tying.
+    const now = Date.now();
+    await Promise.all(
+      notArrived.map((p, i) =>
+        supabase
+          .from("players")
+          .update({
+            status: "waiting",
+            checked_in_at: new Date(now + i).toISOString(),
+          })
+          .eq("id", p.id)
+      )
+    );
+    await loadSessionData(session.id);
+  }
+
   async function handleRest(player: Player) {
     await supabase.from("players").update({ status: "resting" }).eq("id", player.id);
     if (session) await loadSessionData(session.id);
   }
   async function handleResume(player: Player) {
-    // Preserve original place in line — checked_in_at is left untouched.
+    // Preserve original place in line -- checked_in_at is left untouched.
     await supabase.from("players").update({ status: "waiting" }).eq("id", player.id);
     if (session) await loadSessionData(session.id);
   }
@@ -334,7 +388,19 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2000);
     } catch {
-      // Clipboard access can fail (e.g. no HTTPS in some dev setups) — no-op.
+      // Clipboard access can fail (e.g. no HTTPS in some dev setups) -- no-op.
+    }
+  }
+
+  async function handleCopyCheckinLink() {
+    if (typeof window === "undefined") return;
+    const url = `${window.location.origin}/checkin`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCheckinLinkCopied(true);
+      setTimeout(() => setCheckinLinkCopied(false), 2000);
+    } catch {
+      // Clipboard access can fail (e.g. no HTTPS in some dev setups) -- no-op.
     }
   }
 
@@ -366,7 +432,7 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
     <div className="min-h-screen bg-surface px-4 py-6 max-w-2xl mx-auto pb-28">
       <Header onLock={onLock} />
 
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-4">
         <div>
           <p className="font-mono text-xs uppercase tracking-wide text-waiting">
             {session.game_format}
@@ -375,39 +441,51 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
         </div>
         <button
           onClick={() => setShowEditSession((s) => !s)}
-          className="text-xs font-mono uppercase border border-ink/30 rounded-card px-3 py-2 tap-target"
+          aria-label={showEditSession ? "Close edit panel" : "Edit session"}
+          className="w-11 h-11 flex items-center justify-center rounded-card bg-white border border-line shadow-sm hover:shadow-md transition-shadow"
         >
-          {showEditSession ? "Close" : "Edit"}
+          {showEditSession ? <X size={18} /> : <Pencil size={16} />}
         </button>
       </div>
 
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+      <div className="mb-4">
         <StatsBar
           courtsInPlay={courts.filter((c) => c.status === "in_progress").length}
           courtsTotal={courts.length}
           playersTotal={players.filter((p) => p.status !== "checked_out").length}
           queueCount={waiting.length}
         />
-        <div className="flex items-center gap-2">
-          <Link
-            href="/leaderboard"
-            className="text-xs font-mono uppercase border border-ink/30 rounded-card px-3 py-2 tap-target flex items-center"
-          >
-            Leaderboard
-          </Link>
-          <button
-            onClick={handleCopyQueueLink}
-            className="text-xs font-mono uppercase border border-ink/30 rounded-card px-3 py-2 tap-target"
-          >
-            {linkCopied ? "Copied!" : "Share queue link"}
-          </button>
-          <button
-            onClick={() => setShowEndConfirm(true)}
-            className="text-xs font-mono uppercase border border-red-700/40 text-red-700 rounded-card px-3 py-2 tap-target"
-          >
-            End session
-          </button>
-        </div>
+      </div>
+
+      <div className="flex items-center gap-2 mb-6 flex-wrap">
+        <Link
+          href="/leaderboard"
+          className="flex items-center gap-1.5 text-xs font-mono uppercase border border-ink/20 rounded-card px-3 py-2.5 tap-target bg-white shadow-sm hover:shadow-md transition-shadow"
+        >
+          <Trophy size={14} />
+          Leaderboard
+        </Link>
+        <button
+          onClick={handleCopyQueueLink}
+          className="flex items-center gap-1.5 text-xs font-mono uppercase border border-ink/20 rounded-card px-3 py-2.5 tap-target bg-white shadow-sm hover:shadow-md transition-shadow"
+        >
+          <Link2 size={14} />
+          {linkCopied ? "Copied!" : "Share queue"}
+        </button>
+        <button
+          onClick={handleCopyCheckinLink}
+          className="flex items-center gap-1.5 text-xs font-mono uppercase border border-court/40 text-court rounded-card px-3 py-2.5 tap-target bg-white shadow-sm hover:shadow-md transition-shadow"
+        >
+          <QrCode size={14} />
+          {checkinLinkCopied ? "Copied!" : "Check-in"}
+        </button>
+        <button
+          onClick={() => setShowEndConfirm(true)}
+          className="flex items-center gap-1.5 text-xs font-mono uppercase border border-red-700/30 text-red-700 rounded-card px-3 py-2.5 tap-target bg-white shadow-sm hover:shadow-md transition-shadow sm:ml-auto"
+        >
+          <LogOut size={14} />
+          End session
+        </button>
       </div>
 
       {showEndConfirm && (
@@ -451,14 +529,31 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
             court={court}
             playersById={playersById}
             onReportWinner={handleReportWinner}
+            onStartNext={handleStartNext}
+            onChoosePlayers={(c) => setShowChoosePlayersFor(c)}
             waitingCount={waiting.length}
+            busy={sendingToCourt}
           />
         ))}
       </div>
 
+      <RosterList
+        notArrived={notArrived}
+        onCheckIn={handleCheckIn}
+        onCheckInAll={handleCheckInAll}
+        onRemove={handleCheckout}
+      />
+
       {upNext.length > 0 && (
         <div className="mb-8">
-          <UpNextPreview previews={upNext} />
+          <UpNextPreview
+            previews={upNext}
+            openCourtNumber={firstOpenCourt?.court_number}
+            onSendToCourt={
+              firstOpenCourt ? () => handleStartNext(firstOpenCourt) : undefined
+            }
+            sending={sendingToCourt}
+          />
         </div>
       )}
 
@@ -474,21 +569,32 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
         <div className="max-w-2xl mx-auto flex gap-3">
           <button
             onClick={() => setShowAddPlayer(true)}
-            className="tap-target flex-1 bg-ink text-surface font-display text-2xl rounded-card"
+            className="tap-target flex-1 flex items-center justify-center gap-2 bg-ink text-surface font-display text-2xl rounded-card shadow-lg hover:shadow-xl transition-shadow"
           >
-            + Add player
+            <Plus size={22} strokeWidth={2.5} />
+            Add player
           </button>
           <Link
             href="/queue"
-            className="tap-target px-5 flex items-center justify-center border-2 border-ink rounded-card font-mono text-xs uppercase"
+            className="tap-target px-5 flex items-center gap-2 justify-center border-2 border-ink rounded-card font-mono text-xs uppercase"
           >
-            View queue screen
+            <Monitor size={16} />
+            Queue screen
           </Link>
         </div>
       </div>
 
       {showAddPlayer && (
         <AddPlayerModal onAdd={handleAddPlayer} onClose={() => setShowAddPlayer(false)} />
+      )}
+
+      {showChoosePlayersFor && (
+        <ChoosePlayersModal
+          court={showChoosePlayersFor}
+          waiting={waiting}
+          onAssign={handleAssignChosen}
+          onClose={() => setShowChoosePlayersFor(null)}
+        />
       )}
     </div>
   );
@@ -500,8 +606,9 @@ function Header({ onLock }: { onLock: () => void }) {
       <span className="font-display text-lg tracking-tight">QueueUp PH</span>
       <button
         onClick={onLock}
-        className="text-xs font-mono uppercase text-waiting"
+        className="flex items-center gap-1.5 text-xs font-mono uppercase text-waiting"
       >
+        <Lock size={13} />
         Lock
       </button>
     </div>

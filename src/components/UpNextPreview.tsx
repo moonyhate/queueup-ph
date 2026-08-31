@@ -1,23 +1,35 @@
 "use client";
 
+import { ListOrdered } from "lucide-react";
 import { MatchResult } from "@/lib/matching";
 import { skillBadgeColor } from "@/lib/matching";
+import { Player } from "@/lib/types";
 
 interface Props {
   previews: MatchResult[];
   dark?: boolean;
+  openCourtNumber?: number;
+  onSendToCourt?: () => void;
+  sending?: boolean;
 }
 
-export default function UpNextPreview({ previews, dark = false }: Props) {
+export default function UpNextPreview({
+  previews,
+  dark = false,
+  openCourtNumber,
+  onSendToCourt,
+  sending = false,
+}: Props) {
   if (previews.length === 0) return null;
 
   return (
     <div>
       <h3
-        className={`font-display text-2xl leading-none mb-3 ${
+        className={`font-display text-2xl leading-none mb-3 flex items-center gap-2 ${
           dark ? "text-white/70" : "text-ink"
         }`}
       >
+        <ListOrdered size={20} className={dark ? "text-ball" : "text-court"} />
         Up next
       </h3>
       <div className="space-y-3">
@@ -40,7 +52,7 @@ export default function UpNextPreview({ previews, dark = false }: Props) {
                   dark ? "text-white/40" : "text-waiting"
                 }`}
               >
-                {i === 0 ? "As soon as a court opens" : `Then, match ${i + 1}`}
+                {i === 0 ? "First in line" : `Then, match ${i + 1}`}
               </span>
             </div>
             <div className={`text-sm space-y-1 ${dark ? "text-white" : "text-ink"}`}>
@@ -50,6 +62,15 @@ export default function UpNextPreview({ previews, dark = false }: Props) {
               </p>
               <TeamLine players={match.teamB} dark={dark} />
             </div>
+            {i === 0 && onSendToCourt && openCourtNumber && (
+              <button
+                onClick={onSendToCourt}
+                disabled={sending}
+                className="tap-target w-full mt-3 bg-court text-white font-mono text-xs uppercase rounded-card disabled:opacity-50"
+              >
+                {sending ? "Sending..." : `Send to Court ${openCourtNumber}`}
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -61,7 +82,7 @@ function TeamLine({
   players,
   dark,
 }: {
-  players: { name: string; skill_level: "Beginner" | "Intermediate" | "Advanced" }[];
+  players: Player[];
   dark: boolean;
 }) {
   return (

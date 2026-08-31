@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { Trophy, ArrowLeft, Medal } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { Player, Session } from "@/lib/types";
 
@@ -85,17 +86,21 @@ export default function LeaderboardPage() {
           <p className="font-mono text-xs uppercase tracking-wide text-waiting">
             Session leaderboard
           </p>
-          <h1 className="font-display text-4xl sm:text-5xl leading-none">Standings</h1>
+          <h1 className="font-display text-4xl sm:text-5xl leading-none flex items-center gap-2">
+            <Trophy size={34} className="text-ball" />
+            Standings
+          </h1>
         </div>
         <Link
           href="/queue"
-          className="font-mono text-xs uppercase border border-ink/30 rounded-card px-4 py-2"
+          className="flex items-center gap-1.5 font-mono text-xs uppercase border border-ink/30 rounded-card px-4 py-2 shadow-sm hover:shadow-md transition-shadow bg-white"
         >
-          Back to Queue
+          <ArrowLeft size={14} />
+          Queue
         </Link>
       </div>
 
-      <table className="w-full border-collapse">
+      <table className="w-full border-collapse bg-white rounded-card shadow-md overflow-hidden px-4">
         <thead>
           <tr className="border-b-2 border-ink text-left font-mono text-xs uppercase text-waiting">
             <th className="py-2 pr-2">Rank</th>
@@ -108,19 +113,17 @@ export default function LeaderboardPage() {
         <tbody>
           {ranked.map((p, i) => {
             const winPct = p.games_played > 0 ? Math.round((p.wins / p.games_played) * 100) : 0;
-            const medalLabel = ["1ST", "2ND", "3RD"][i];
+            const medalColor = ["text-yellow-500", "text-gray-400", "text-amber-700"][i];
             return (
               <tr
                 key={p.id}
                 className={`border-b border-line ${i < 3 ? "bg-ball/10" : ""}`}
               >
                 <td className="py-3 pr-2 scoreboard-num text-xl">
-                  {medalLabel ? (
-                    <span className="text-[10px] font-mono font-normal align-middle mr-1 px-1.5 py-0.5 rounded-card border border-ink/30">
-                      {medalLabel}
-                    </span>
-                  ) : null}
-                  {i + 1}
+                  <span className="inline-flex items-center gap-1.5">
+                    {medalColor && <Medal size={16} className={medalColor} />}
+                    {i + 1}
+                  </span>
                 </td>
                 <td className="py-3 pr-2 font-medium">{p.name}</td>
                 <td className="py-3 pr-2 text-right scoreboard-num text-xl">{p.wins}</td>

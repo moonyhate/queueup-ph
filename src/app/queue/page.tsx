@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
+import { Trophy, LayoutGrid, Users } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { Court, Player, Session } from "@/lib/types";
 import { skillBadgeColor, previewNextMatches } from "@/lib/matching";
@@ -16,9 +17,13 @@ export default function QueuePage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [courts, setCourts] = useState<Court[]>([]);
   const [selfUrl, setSelfUrl] = useState("");
+  const [checkinUrl, setCheckinUrl] = useState("");
 
   useEffect(() => {
-    if (typeof window !== "undefined") setSelfUrl(window.location.href);
+    if (typeof window !== "undefined") {
+      setSelfUrl(window.location.href);
+      setCheckinUrl(`${window.location.origin}/checkin`);
+    }
   }, []);
 
   useEffect(() => {
@@ -140,19 +145,32 @@ export default function QueuePage() {
         <div className="flex items-center gap-4">
           <Link
             href="/leaderboard"
-            className="font-mono text-xs sm:text-sm uppercase border border-white/30 rounded-card px-4 py-2"
+            className="flex items-center gap-1.5 font-mono text-xs sm:text-sm uppercase border border-white/30 rounded-card px-4 py-2"
           >
-            Leaderboard →
+            <Trophy size={14} />
+            Leaderboard
           </Link>
-          <div className="hidden sm:block bg-white p-2 rounded-card">
-            <QRCodeSVG value={selfUrl || "/"} size={64} />
+          <div className="hidden sm:flex items-center gap-3">
+            <div className="text-center">
+              <div className="bg-white p-2 rounded-card">
+                <QRCodeSVG value={selfUrl || "/"} size={56} />
+              </div>
+              <p className="font-mono text-[9px] uppercase text-white/40 mt-1">Watch</p>
+            </div>
+            <div className="text-center">
+              <div className="bg-white p-2 rounded-card">
+                <QRCodeSVG value={checkinUrl || "/checkin"} size={56} />
+              </div>
+              <p className="font-mono text-[9px] uppercase text-ball mt-1">Check in</p>
+            </div>
           </div>
         </div>
       </header>
 
       <main className="px-6 sm:px-10 py-8 grid lg:grid-cols-[1.4fr_1fr] gap-8">
         <section>
-          <h2 className="font-display text-3xl sm:text-4xl leading-none mb-4 text-ball">
+          <h2 className="font-display text-3xl sm:text-4xl leading-none mb-4 text-ball flex items-center gap-2">
+            <LayoutGrid size={26} />
             Courts
           </h2>
           <div className="grid sm:grid-cols-2 gap-4">
@@ -163,31 +181,65 @@ export default function QueuePage() {
               return (
                 <div
                   key={court.id}
-                  className={`rounded-card border-2 p-5 ${
-                    inProgress ? "border-progress bg-progress/15" : "border-ball bg-ball/10"
+                  className={`rounded-card overflow-hidden border-2 shadow-lg ${
+                    inProgress ? "border-progress" : "border-ball"
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="font-display text-3xl leading-none">
+                  <div
+                    className={`flex items-center justify-between px-4 py-3 ${
+                      inProgress ? "bg-progress" : "bg-ball"
+                    }`}
+                  >
+                    <span
+                      className={`font-display text-2xl leading-none ${
+                        inProgress ? "text-white" : "text-ink"
+                      }`}
+                    >
                       Court {court.court_number}
                     </span>
                     {inProgress ? (
-                      <span className="font-mono text-sm text-progress-light text-progress">
+                      <span className="flex items-center gap-2 font-mono text-sm text-white">
+                        <span className="live-dot w-2 h-2 rounded-full bg-white inline-block" />
                         <ElapsedTimer startedAt={court.started_at as string} />
                       </span>
                     ) : (
-                      <span className="font-mono text-xs uppercase text-ball">Open</span>
+                      <span className="font-mono text-xs uppercase text-ink">Open</span>
                     )}
                   </div>
-                  {inProgress && teamA && teamB ? (
-                    <div className="space-y-1 text-lg">
-                      <p>{teamA.map((p) => p?.name).join(" & ")}</p>
-                      <p className="text-white/40 font-mono text-sm">vs</p>
-                      <p>{teamB.map((p) => p?.name).join(" & ")}</p>
-                    </div>
-                  ) : (
-                    <p className="text-white/50">Waiting for players</p>
-                  )}
+                  <div className="bg-court-dark">
+                    {inProgress && teamA && teamB ? (
+                      <div className="grid grid-cols-2">
+                        <div className="px-3 py-3 border-r border-white/10 space-y-1.5">
+                          <p className="font-mono text-[10px] uppercase tracking-wide text-progress-light text-progress mb-1">
+                            Team A
+                          </p>
+                          {teamA.map((p) => (
+                            <p key={p?.id} className="text-lg flex items-center gap-2">
+                              {p?.name}
+                              <span className="text-[10px] font-mono text-white/40 border border-white/20 rounded-card px-1.5 py-0.5">
+                                {p?.skill_level}
+                              </span>
+                            </p>
+                          ))}
+                        </div>
+                        <div className="px-3 py-3 space-y-1.5">
+                          <p className="font-mono text-[10px] uppercase tracking-wide text-rest mb-1">
+                            Team B
+                          </p>
+                          {teamB.map((p) => (
+                            <p key={p?.id} className="text-lg flex items-center gap-2">
+                              {p?.name}
+                              <span className="text-[10px] font-mono text-white/40 border border-white/20 rounded-card px-1.5 py-0.5">
+                                {p?.skill_level}
+                              </span>
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-white/50 px-4 py-8 text-center">Waiting for players</p>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -201,7 +253,8 @@ export default function QueuePage() {
             </div>
           )}
 
-          <h2 className="font-display text-3xl sm:text-4xl leading-none mb-4 text-white/70">
+          <h2 className="font-display text-3xl sm:text-4xl leading-none mb-4 text-white/70 flex items-center gap-2">
+            <Users size={26} />
             Waiting queue
           </h2>
           <ol className="space-y-2">

@@ -8,7 +8,7 @@ interface Props {
   onClose: () => void;
 }
 
-const SKILLS: SkillLevel[] = ["Beginner", "Intermediate", "Advanced"];
+const SKILLS: SkillLevel[] = ["Beginner", "Novice", "Intermediate", "Advanced"];
 
 export default function AddPlayerModal({ onAdd, onClose }: Props) {
   const [name, setName] = useState("");
@@ -26,7 +26,7 @@ export default function AddPlayerModal({ onAdd, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 bg-ink/50 flex items-end sm:items-center justify-center z-50 px-4">
-      <div className="w-full max-w-md bg-white rounded-t-card sm:rounded-card p-6 pb-8">
+      <div className="w-full max-w-md bg-white rounded-t-card sm:rounded-card p-6 pb-8 shadow-2xl">
         <div className="flex items-center justify-between mb-5">
           <h2 className="font-display text-3xl leading-none">Add player</h2>
           <button
@@ -34,7 +34,7 @@ export default function AddPlayerModal({ onAdd, onClose }: Props) {
             aria-label="Close"
             className="w-10 h-10 flex items-center justify-center text-2xl text-waiting"
           >
-            ×
+            Close
           </button>
         </div>
 
@@ -48,7 +48,7 @@ export default function AddPlayerModal({ onAdd, onClose }: Props) {
         />
 
         <label className="block text-sm font-medium mb-2">Skill level</label>
-        <div className="grid grid-cols-3 gap-2 mb-6">
+        <div className="grid grid-cols-2 gap-2 mb-6">
           {SKILLS.map((s) => (
             <button
               key={s}
@@ -70,7 +70,7 @@ export default function AddPlayerModal({ onAdd, onClose }: Props) {
           disabled={!name.trim() || !skill || saving}
           className="tap-target w-full bg-ink text-surface font-display text-2xl rounded-card disabled:opacity-40"
         >
-          {saving ? "Adding…" : "Add to queue"}
+          {saving ? "Adding..." : "Add to queue"}
         </button>
       </div>
     </div>

@@ -13,13 +13,14 @@ export interface MatchResult {
  *
  * Rules (per QueueUp PH spec):
  * 1. Always start from the 4 longest-waiting players.
- * 2. If those 4 span all three skill tiers, try tightening the range by
- *    swapping the newest of the four with a player later in line — but
- *    never reach more than 2 positions past the original group of 4
- *    (fairness beats perfect skill balance).
- * 3. Split into teams by pairing best + weakest vs. the middle two, so
- *    matches are competitive rather than stacked.
- * 4. Fewer than 4 waiting players -> no match can form yet.
+ * 2. If those 4 have a wide skill spread (more than one tier gap between
+ *    the highest and lowest of Beginner/Novice/Intermediate/Advanced),
+ *    look at most 2 positions further into the line for a swap that
+ *    tightens the range - fairness (wait time) always wins over a
+ *    perfect skill match.
+ * 3. Split into teams by pairing the strongest and weakest player against
+ *    the middle two, so matches stay competitive rather than stacked.
+ * 4. Fewer than 4 people waiting -> no match can form yet.
  */
 export function formNextMatch(waitingQueue: Player[]): MatchResult | null {
   if (waitingQueue.length < 4) return null;
@@ -28,7 +29,8 @@ export function formNextMatch(waitingQueue: Player[]): MatchResult | null {
   let group = queue.slice(0, 4);
   const rest = queue.slice(4);
 
-  if (spansAllTiers(group)) {
+  const WIDE_SPREAD_THRESHOLD = 1; // more than 1 tier gap counts as a wide spread
+  if (tierSpread(group) > WIDE_SPREAD_THRESHOLD) {
     const MAX_LOOKAHEAD = 2; // never skip more than 2 positions into the line
     const newestIndex = 3; // the most-recently-queued of the current 4
     let bestSwapAt = -1;
@@ -59,11 +61,6 @@ export function formNextMatch(waitingQueue: Player[]): MatchResult | null {
   return { teamA, teamB, remainingQueue };
 }
 
-function spansAllTiers(players: Player[]): boolean {
-  const tiers = new Set(players.map((p) => p.skill_level));
-  return tiers.size >= 3;
-}
-
 /** Highest tier rank minus lowest tier rank among the group; 0 = all same tier. */
 function tierSpread(players: Player[]): number {
   const ranks = players.map((p) => SKILL_RANK[p.skill_level]);
@@ -71,7 +68,7 @@ function tierSpread(players: Player[]): number {
 }
 
 /** Best + weakest vs. the middle two, so games stay competitive. */
-function splitIntoTeams(group: Player[]): [Player[], Player[]] {
+export function splitIntoTeams(group: Player[]): [Player[], Player[]] {
   const sorted = [...group].sort(
     (a, b) => SKILL_RANK[b.skill_level] - SKILL_RANK[a.skill_level]
   );
@@ -103,6 +100,8 @@ export function skillBadgeColor(skill: SkillLevel): string {
   switch (skill) {
     case "Beginner":
       return "bg-court-light/20 text-court-dark border-court-light";
+    case "Novice":
+      return "bg-court/10 text-court border-court/40";
     case "Intermediate":
       return "bg-progress/10 text-progress border-progress/40";
     case "Advanced":

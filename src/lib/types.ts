@@ -1,6 +1,6 @@
-export type SkillLevel = "Beginner" | "Intermediate" | "Advanced";
+export type SkillLevel = "Beginner" | "Novice" | "Intermediate" | "Advanced";
 
-export type PlayerStatus = "waiting" | "playing" | "resting" | "checked_out";
+export type PlayerStatus = "not_arrived" | "waiting" | "playing" | "resting" | "checked_out";
 
 export interface Session {
   id: string;
@@ -46,10 +46,11 @@ export interface MatchRecord {
   ended_at: string | null;
 }
 
-export const SKILL_ORDER: SkillLevel[] = ["Beginner", "Intermediate", "Advanced"];
+export const SKILL_ORDER: SkillLevel[] = ["Beginner", "Novice", "Intermediate", "Advanced"];
 
 export const SKILL_RANK: Record<SkillLevel, number> = {
   Beginner: 0,
-  Intermediate: 1,
-  Advanced: 2,
+  Novice: 1,
+  Intermediate: 2,
+  Advanced: 3,
 };
