@@ -5,12 +5,14 @@ import Link from "next/link";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { isPinUnlocked, lockPin } from "@/lib/pin";
 import { Court, Player, Session, SkillLevel } from "@/lib/types";
-import { formNextMatch } from "@/lib/matching";
+import { formNextMatch, previewNextMatches } from "@/lib/matching";
 import PinGate from "@/components/PinGate";
 import SessionSetup from "@/components/SessionSetup";
 import AddPlayerModal from "@/components/AddPlayerModal";
 import CourtCard from "@/components/CourtCard";
 import WaitingQueueList from "@/components/WaitingQueueList";
+import StatsBar from "@/components/StatsBar";
+import UpNextPreview from "@/components/UpNextPreview";
 
 export default function OrganizerPage() {
   const [unlocked, setUnlocked] = useState(false);
@@ -94,21 +96,36 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
   // ---- realtime subscriptions ----
   useEffect(() => {
     if (!session) return;
-    const channel = supabase
-      .channel(`organizer-${session.id}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "players", filter: `session_id=eq.${session.id}` },
-        () => loadSessionData(session.id)
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "courts", filter: `session_id=eq.${session.id}` },
-        () => loadSessionData(session.id)
-      )
-      .subscribe();
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    (async () => {
+      // In React 18 dev mode this effect can run twice in a row (StrictMode).
+      // Remove any leftover channel on the same topic before subscribing again,
+      // otherwise Supabase errors with "cannot add callbacks after subscribe()".
+      const topic = `organizer-${session.id}`;
+      const existing = supabase.getChannels().find((c) => c.topic === `realtime:${topic}`);
+      if (existing) await supabase.removeChannel(existing);
+      if (cancelled) return;
+
+      channel = supabase
+        .channel(topic)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "players", filter: `session_id=eq.${session.id}` },
+          () => loadSessionData(session.id)
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "courts", filter: `session_id=eq.${session.id}` },
+          () => loadSessionData(session.id)
+        )
+        .subscribe();
+    })();
+
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id]);
@@ -122,6 +139,9 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
   );
   const resting = useMemo(() => players.filter((p) => p.status === "resting"), [players]);
   const playersById = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
+  const upNext = useMemo(() => previewNextMatches(waiting, 2), [waiting]);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
 
   // ---- auto-fill open courts from the queue ----
   useEffect(() => {
@@ -306,6 +326,27 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
     if (session) await loadSessionData(session.id);
   }
 
+  async function handleCopyQueueLink() {
+    if (typeof window === "undefined") return;
+    const url = `${window.location.origin}/queue`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      // Clipboard access can fail (e.g. no HTTPS in some dev setups) — no-op.
+    }
+  }
+
+  async function handleEndSession() {
+    if (!session) return;
+    await supabase.from("sessions").update({ active: false }).eq("id", session.id);
+    setSession(null);
+    setPlayers([]);
+    setCourts([]);
+    setShowEndConfirm(false);
+  }
+
   if (loading) {
     return <div className="min-h-screen bg-surface" />;
   }
@@ -325,7 +366,7 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
     <div className="min-h-screen bg-surface px-4 py-6 max-w-2xl mx-auto pb-28">
       <Header onLock={onLock} />
 
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-start justify-between mb-3">
         <div>
           <p className="font-mono text-xs uppercase tracking-wide text-waiting">
             {session.game_format}
@@ -339,6 +380,58 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
           {showEditSession ? "Close" : "Edit"}
         </button>
       </div>
+
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <StatsBar
+          courtsInPlay={courts.filter((c) => c.status === "in_progress").length}
+          courtsTotal={courts.length}
+          playersTotal={players.filter((p) => p.status !== "checked_out").length}
+          queueCount={waiting.length}
+        />
+        <div className="flex items-center gap-2">
+          <Link
+            href="/leaderboard"
+            className="text-xs font-mono uppercase border border-ink/30 rounded-card px-3 py-2 tap-target flex items-center"
+          >
+            Leaderboard
+          </Link>
+          <button
+            onClick={handleCopyQueueLink}
+            className="text-xs font-mono uppercase border border-ink/30 rounded-card px-3 py-2 tap-target"
+          >
+            {linkCopied ? "Copied!" : "Share queue link"}
+          </button>
+          <button
+            onClick={() => setShowEndConfirm(true)}
+            className="text-xs font-mono uppercase border border-red-700/40 text-red-700 rounded-card px-3 py-2 tap-target"
+          >
+            End session
+          </button>
+        </div>
+      </div>
+
+      {showEndConfirm && (
+        <div className="mb-6 rounded-card border-2 border-red-700/40 bg-red-50 p-4">
+          <p className="font-medium mb-3">
+            End this session? The queue, courts, and leaderboard will stop updating.
+            You can always start a new session afterward.
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={handleEndSession}
+              className="tap-target flex-1 bg-red-700 text-white rounded-card font-mono text-xs uppercase"
+            >
+              End session
+            </button>
+            <button
+              onClick={() => setShowEndConfirm(false)}
+              className="tap-target flex-1 border-2 border-ink/20 rounded-card font-mono text-xs uppercase"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {showEditSession && (
         <div className="mb-6">
@@ -362,6 +455,12 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
           />
         ))}
       </div>
+
+      {upNext.length > 0 && (
+        <div className="mb-8">
+          <UpNextPreview previews={upNext} />
+        </div>
+      )}
 
       <WaitingQueueList
         waiting={waiting}
