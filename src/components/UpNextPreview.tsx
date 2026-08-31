@@ -1,5 +1,6 @@
 "use client";
 
+import { ListOrdered } from "lucide-react";
 import { MatchResult } from "@/lib/matching";
 import { skillBadgeColor } from "@/lib/matching";
 import { Player } from "@/lib/types";
@@ -24,10 +25,11 @@ export default function UpNextPreview({
   return (
     <div>
       <h3
-        className={`font-display text-2xl leading-none mb-3 ${
+        className={`font-display text-2xl leading-none mb-3 flex items-center gap-2 ${
           dark ? "text-white/70" : "text-ink"
         }`}
       >
+        <ListOrdered size={20} className={dark ? "text-ball" : "text-court"} />
         Up next
       </h3>
       <div className="space-y-3">
