@@ -68,7 +68,7 @@ function tierSpread(players: Player[]): number {
 }
 
 /** Best + weakest vs. the middle two, so games stay competitive. */
-function splitIntoTeams(group: Player[]): [Player[], Player[]] {
+export function splitIntoTeams(group: Player[]): [Player[], Player[]] {
   const sorted = [...group].sort(
     (a, b) => SKILL_RANK[b.skill_level] - SKILL_RANK[a.skill_level]
   );
