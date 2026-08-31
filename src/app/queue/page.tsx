@@ -16,9 +16,13 @@ export default function QueuePage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [courts, setCourts] = useState<Court[]>([]);
   const [selfUrl, setSelfUrl] = useState("");
+  const [checkinUrl, setCheckinUrl] = useState("");
 
   useEffect(() => {
-    if (typeof window !== "undefined") setSelfUrl(window.location.href);
+    if (typeof window !== "undefined") {
+      setSelfUrl(window.location.href);
+      setCheckinUrl(`${window.location.origin}/checkin`);
+    }
   }, []);
 
   useEffect(() => {
@@ -142,10 +146,21 @@ export default function QueuePage() {
             href="/leaderboard"
             className="font-mono text-xs sm:text-sm uppercase border border-white/30 rounded-card px-4 py-2"
           >
-            Leaderboard →
+            Leaderboard
           </Link>
-          <div className="hidden sm:block bg-white p-2 rounded-card">
-            <QRCodeSVG value={selfUrl || "/"} size={64} />
+          <div className="hidden sm:flex items-center gap-3">
+            <div className="text-center">
+              <div className="bg-white p-2 rounded-card">
+                <QRCodeSVG value={selfUrl || "/"} size={56} />
+              </div>
+              <p className="font-mono text-[9px] uppercase text-white/40 mt-1">Watch</p>
+            </div>
+            <div className="text-center">
+              <div className="bg-white p-2 rounded-card">
+                <QRCodeSVG value={checkinUrl || "/checkin"} size={56} />
+              </div>
+              <p className="font-mono text-[9px] uppercase text-ball mt-1">Check in</p>
+            </div>
           </div>
         </div>
       </header>
