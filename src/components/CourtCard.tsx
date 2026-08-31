@@ -7,6 +7,8 @@ interface Props {
   court: Court;
   playersById: Map<string, Player>;
   onReportWinner: (court: Court, winner: "A" | "B") => void;
+  onStartNext: (court: Court) => void;
+  onChoosePlayers: (court: Court) => void;
   waitingCount: number;
 }
 
@@ -14,11 +16,14 @@ export default function CourtCard({
   court,
   playersById,
   onReportWinner,
+  onStartNext,
+  onChoosePlayers,
   waitingCount,
 }: Props) {
   const inProgress = court.status === "in_progress";
   const teamA = court.team_a?.playerIds.map((id) => playersById.get(id));
   const teamB = court.team_b?.playerIds.map((id) => playersById.get(id));
+  const canStart = waitingCount >= 4;
 
   return (
     <div
@@ -45,11 +50,28 @@ export default function CourtCard({
       </div>
 
       {!inProgress && (
-        <p className="text-sm text-waiting py-8 px-4 text-center">
-          {waitingCount < 4
-            ? "Waiting for more players"
-            : "Filling from the queue..."}
-        </p>
+        <div className="p-4">
+          {!canStart ? (
+            <p className="text-sm text-waiting py-8 text-center">
+              Waiting for more players
+            </p>
+          ) : (
+            <div className="space-y-2 py-2">
+              <button
+                onClick={() => onStartNext(court)}
+                className="tap-target w-full bg-court text-white font-display text-xl rounded-card shadow-sm hover:shadow-md transition-shadow"
+              >
+                Start next match
+              </button>
+              <button
+                onClick={() => onChoosePlayers(court)}
+                className="tap-target w-full border-2 border-ink/20 text-ink font-mono text-xs uppercase rounded-card"
+              >
+                Choose players
+              </button>
+            </div>
+          )}
+        </div>
       )}
 
       {inProgress && teamA && teamB && (
