@@ -515,6 +515,7 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
             onStartNext={handleStartNext}
             onChoosePlayers={(c) => setShowChoosePlayersFor(c)}
             waitingCount={waiting.length}
+            busy={sendingToCourt}
           />
         ))}
       </div>
