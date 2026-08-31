@@ -95,7 +95,7 @@ export default function LeaderboardPage() {
         </Link>
       </div>
 
-      <table className="w-full border-collapse">
+      <table className="w-full border-collapse bg-white rounded-card shadow-md overflow-hidden px-4">
         <thead>
           <tr className="border-b-2 border-ink text-left font-mono text-xs uppercase text-waiting">
             <th className="py-2 pr-2">Rank</th>
