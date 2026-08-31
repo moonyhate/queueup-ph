@@ -2,6 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import {
+  Trophy,
+  Link2,
+  QrCode,
+  LogOut,
+  Pencil,
+  X,
+  Lock,
+  Plus,
+  Monitor,
+} from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { isPinUnlocked, lockPin } from "@/lib/pin";
 import { Court, Player, Session, SkillLevel } from "@/lib/types";
@@ -421,7 +432,7 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
     <div className="min-h-screen bg-surface px-4 py-6 max-w-2xl mx-auto pb-28">
       <Header onLock={onLock} />
 
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-4">
         <div>
           <p className="font-mono text-xs uppercase tracking-wide text-waiting">
             {session.game_format}
@@ -430,45 +441,51 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
         </div>
         <button
           onClick={() => setShowEditSession((s) => !s)}
-          className="text-xs font-mono uppercase border border-ink/30 rounded-card px-3 py-2 tap-target bg-white shadow-sm hover:shadow-md transition-shadow"
+          aria-label={showEditSession ? "Close edit panel" : "Edit session"}
+          className="w-11 h-11 flex items-center justify-center rounded-card bg-white border border-line shadow-sm hover:shadow-md transition-shadow"
         >
-          {showEditSession ? "Close" : "Edit"}
+          {showEditSession ? <X size={18} /> : <Pencil size={16} />}
         </button>
       </div>
 
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+      <div className="mb-4">
         <StatsBar
           courtsInPlay={courts.filter((c) => c.status === "in_progress").length}
           courtsTotal={courts.length}
           playersTotal={players.filter((p) => p.status !== "checked_out").length}
           queueCount={waiting.length}
         />
-        <div className="flex items-center gap-2">
-          <Link
-            href="/leaderboard"
-            className="text-xs font-mono uppercase border border-ink/30 rounded-card px-3 py-2 tap-target flex items-center bg-white shadow-sm hover:shadow-md transition-shadow"
-          >
-            Leaderboard
-          </Link>
-          <button
-            onClick={handleCopyQueueLink}
-            className="text-xs font-mono uppercase border border-ink/30 rounded-card px-3 py-2 tap-target bg-white shadow-sm hover:shadow-md transition-shadow"
-          >
-            {linkCopied ? "Copied!" : "Share queue link"}
-          </button>
-          <button
-            onClick={handleCopyCheckinLink}
-            className="text-xs font-mono uppercase border border-court/50 text-court rounded-card px-3 py-2 tap-target bg-white shadow-sm hover:shadow-md transition-shadow"
-          >
-            {checkinLinkCopied ? "Copied!" : "Check-in link"}
-          </button>
-          <button
-            onClick={() => setShowEndConfirm(true)}
-            className="text-xs font-mono uppercase border border-red-700/40 text-red-700 rounded-card px-3 py-2 tap-target bg-white shadow-sm hover:shadow-md transition-shadow"
-          >
-            End session
-          </button>
-        </div>
+      </div>
+
+      <div className="flex items-center gap-2 mb-6 flex-wrap">
+        <Link
+          href="/leaderboard"
+          className="flex items-center gap-1.5 text-xs font-mono uppercase border border-ink/20 rounded-card px-3 py-2.5 tap-target bg-white shadow-sm hover:shadow-md transition-shadow"
+        >
+          <Trophy size={14} />
+          Leaderboard
+        </Link>
+        <button
+          onClick={handleCopyQueueLink}
+          className="flex items-center gap-1.5 text-xs font-mono uppercase border border-ink/20 rounded-card px-3 py-2.5 tap-target bg-white shadow-sm hover:shadow-md transition-shadow"
+        >
+          <Link2 size={14} />
+          {linkCopied ? "Copied!" : "Share queue"}
+        </button>
+        <button
+          onClick={handleCopyCheckinLink}
+          className="flex items-center gap-1.5 text-xs font-mono uppercase border border-court/40 text-court rounded-card px-3 py-2.5 tap-target bg-white shadow-sm hover:shadow-md transition-shadow"
+        >
+          <QrCode size={14} />
+          {checkinLinkCopied ? "Copied!" : "Check-in"}
+        </button>
+        <button
+          onClick={() => setShowEndConfirm(true)}
+          className="flex items-center gap-1.5 text-xs font-mono uppercase border border-red-700/30 text-red-700 rounded-card px-3 py-2.5 tap-target bg-white shadow-sm hover:shadow-md transition-shadow sm:ml-auto"
+        >
+          <LogOut size={14} />
+          End session
+        </button>
       </div>
 
       {showEndConfirm && (
@@ -552,15 +569,17 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
         <div className="max-w-2xl mx-auto flex gap-3">
           <button
             onClick={() => setShowAddPlayer(true)}
-            className="tap-target flex-1 bg-ink text-surface font-display text-2xl rounded-card shadow-lg hover:shadow-xl transition-shadow"
+            className="tap-target flex-1 flex items-center justify-center gap-2 bg-ink text-surface font-display text-2xl rounded-card shadow-lg hover:shadow-xl transition-shadow"
           >
-            + Add player
+            <Plus size={22} strokeWidth={2.5} />
+            Add player
           </button>
           <Link
             href="/queue"
-            className="tap-target px-5 flex items-center justify-center border-2 border-ink rounded-card font-mono text-xs uppercase"
+            className="tap-target px-5 flex items-center gap-2 justify-center border-2 border-ink rounded-card font-mono text-xs uppercase"
           >
-            View queue screen
+            <Monitor size={16} />
+            Queue screen
           </Link>
         </div>
       </div>
@@ -587,8 +606,9 @@ function Header({ onLock }: { onLock: () => void }) {
       <span className="font-display text-lg tracking-tight">QueueUp PH</span>
       <button
         onClick={onLock}
-        className="text-xs font-mono uppercase text-waiting"
+        className="flex items-center gap-1.5 text-xs font-mono uppercase text-waiting"
       >
+        <Lock size={13} />
         Lock
       </button>
     </div>
