@@ -141,6 +141,7 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
   const playersById = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
   const upNext = useMemo(() => previewNextMatches(waiting, 2), [waiting]);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [checkinLinkCopied, setCheckinLinkCopied] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
 
   // ---- auto-fill open courts from the queue ----
@@ -317,7 +318,7 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
     if (session) await loadSessionData(session.id);
   }
   async function handleResume(player: Player) {
-    // Preserve original place in line — checked_in_at is left untouched.
+    // Preserve original place in line -- checked_in_at is left untouched.
     await supabase.from("players").update({ status: "waiting" }).eq("id", player.id);
     if (session) await loadSessionData(session.id);
   }
@@ -334,7 +335,19 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2000);
     } catch {
-      // Clipboard access can fail (e.g. no HTTPS in some dev setups) — no-op.
+      // Clipboard access can fail (e.g. no HTTPS in some dev setups) -- no-op.
+    }
+  }
+
+  async function handleCopyCheckinLink() {
+    if (typeof window === "undefined") return;
+    const url = `${window.location.origin}/checkin`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCheckinLinkCopied(true);
+      setTimeout(() => setCheckinLinkCopied(false), 2000);
+    } catch {
+      // Clipboard access can fail (e.g. no HTTPS in some dev setups) -- no-op.
     }
   }
 
@@ -400,6 +413,12 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
             className="text-xs font-mono uppercase border border-ink/30 rounded-card px-3 py-2 tap-target"
           >
             {linkCopied ? "Copied!" : "Share queue link"}
+          </button>
+          <button
+            onClick={handleCopyCheckinLink}
+            className="text-xs font-mono uppercase border border-court/50 text-court rounded-card px-3 py-2 tap-target"
+          >
+            {checkinLinkCopied ? "Copied!" : "Check-in link"}
           </button>
           <button
             onClick={() => setShowEndConfirm(true)}
