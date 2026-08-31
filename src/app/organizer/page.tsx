@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { isPinUnlocked, lockPin } from "@/lib/pin";
@@ -10,7 +10,9 @@ import PinGate from "@/components/PinGate";
 import SessionSetup from "@/components/SessionSetup";
 import AddPlayerModal from "@/components/AddPlayerModal";
 import CourtCard from "@/components/CourtCard";
+import ChoosePlayersModal from "@/components/ChoosePlayersModal";
 import WaitingQueueList from "@/components/WaitingQueueList";
+import RosterList from "@/components/RosterList";
 import StatsBar from "@/components/StatsBar";
 import UpNextPreview from "@/components/UpNextPreview";
 
@@ -54,7 +56,8 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
   const [loading, setLoading] = useState(true);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [showEditSession, setShowEditSession] = useState(false);
-  const fillingLock = useRef(false);
+  const [showChoosePlayersFor, setShowChoosePlayersFor] = useState<Court | null>(null);
+  const [sendingToCourt, setSendingToCourt] = useState(false);
 
   // ---- initial load ----
   useEffect(() => {
@@ -138,56 +141,68 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
     [players]
   );
   const resting = useMemo(() => players.filter((p) => p.status === "resting"), [players]);
+  const notArrived = useMemo(
+    () =>
+      players
+        .filter((p) => p.status === "not_arrived")
+        .sort((a, b) => new Date(a.checked_in_at).getTime() - new Date(b.checked_in_at).getTime()),
+    [players]
+  );
   const playersById = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
   const upNext = useMemo(() => previewNextMatches(waiting, 2), [waiting]);
   const [linkCopied, setLinkCopied] = useState(false);
   const [checkinLinkCopied, setCheckinLinkCopied] = useState(false);
   const [showEndConfirm, setShowEndConfirm] = useState(false);
 
-  // ---- auto-fill open courts from the queue ----
-  useEffect(() => {
+  const openCourts = useMemo(
+    () => courts.filter((c) => c.status === "open").sort((a, b) => a.court_number - b.court_number),
+    [courts]
+  );
+  const firstOpenCourt = openCourts[0] ?? null;
+
+  // ---- assign a specific match to a specific court ----
+  async function assignMatchToCourt(court: Court, teamA: Player[], teamB: Player[]) {
     if (!session) return;
-    const openCourts = courts.filter((c) => c.status === "open");
-    if (openCourts.length === 0) return;
-    if (fillingLock.current) return;
+    setSendingToCourt(true);
+    try {
+      const startedAt = new Date().toISOString();
+      await supabase
+        .from("courts")
+        .update({
+          status: "in_progress",
+          team_a: { playerIds: teamA.map((p) => p.id) },
+          team_b: { playerIds: teamB.map((p) => p.id) },
+          started_at: startedAt,
+        })
+        .eq("id", court.id);
 
-    (async () => {
-      fillingLock.current = true;
-      try {
-        let queue = [...waiting];
-        for (const court of openCourts) {
-          const result = formNextMatch(queue);
-          if (!result) break;
-          const { teamA, teamB, remainingQueue } = result;
-          queue = remainingQueue;
+      const allFour = [...teamA, ...teamB];
+      await supabase
+        .from("players")
+        .update({ status: "playing", court_id: court.id })
+        .in(
+          "id",
+          allFour.map((p) => p.id)
+        );
 
-          const startedAt = new Date().toISOString();
-          await supabase
-            .from("courts")
-            .update({
-              status: "in_progress",
-              team_a: { playerIds: teamA.map((p) => p.id) },
-              team_b: { playerIds: teamB.map((p) => p.id) },
-              started_at: startedAt,
-            })
-            .eq("id", court.id);
+      await loadSessionData(session.id);
+    } finally {
+      setSendingToCourt(false);
+      setShowChoosePlayersFor(null);
+    }
+  }
 
-          const allFour = [...teamA, ...teamB];
-          await supabase
-            .from("players")
-            .update({ status: "playing", court_id: court.id })
-            .in(
-              "id",
-              allFour.map((p) => p.id)
-            );
-        }
-        await loadSessionData(session.id);
-      } finally {
-        fillingLock.current = false;
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [courts, waiting.length, session?.id]);
+  // ---- send the algorithm's next match to a specific court ----
+  async function handleStartNext(court: Court) {
+    const result = formNextMatch(waiting);
+    if (!result) return;
+    await assignMatchToCourt(court, result.teamA, result.teamB);
+  }
+
+  // ---- manually chosen players, sent to a specific court ----
+  async function handleAssignChosen(court: Court, teamA: Player[], teamB: Player[]) {
+    await assignMatchToCourt(court, teamA, teamB);
+  }
 
   async function handleCreateSession(courtCount: number, format: string) {
     const { data, error } = await supabase
@@ -253,7 +268,7 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
       session_id: session.id,
       name,
       skill_level: skill,
-      status: "waiting",
+      status: "not_arrived",
       checked_in_at: new Date().toISOString(),
       wins: 0,
       games_played: 0,
@@ -310,6 +325,33 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
       .update({ status: "open", team_a: null, team_b: null, started_at: null })
       .eq("id", court.id);
 
+    await loadSessionData(session.id);
+  }
+
+  async function handleCheckIn(player: Player) {
+    await supabase
+      .from("players")
+      .update({ status: "waiting", checked_in_at: new Date().toISOString() })
+      .eq("id", player.id);
+    if (session) await loadSessionData(session.id);
+  }
+
+  async function handleCheckInAll() {
+    if (!session) return;
+    // Stagger checked_in_at by a few ms per player so they keep the same
+    // relative queue order they had on the roster, rather than tying.
+    const now = Date.now();
+    await Promise.all(
+      notArrived.map((p, i) =>
+        supabase
+          .from("players")
+          .update({
+            status: "waiting",
+            checked_in_at: new Date(now + i).toISOString(),
+          })
+          .eq("id", p.id)
+      )
+    );
     await loadSessionData(session.id);
   }
 
@@ -470,14 +512,30 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
             court={court}
             playersById={playersById}
             onReportWinner={handleReportWinner}
+            onStartNext={handleStartNext}
+            onChoosePlayers={(c) => setShowChoosePlayersFor(c)}
             waitingCount={waiting.length}
           />
         ))}
       </div>
 
+      <RosterList
+        notArrived={notArrived}
+        onCheckIn={handleCheckIn}
+        onCheckInAll={handleCheckInAll}
+        onRemove={handleCheckout}
+      />
+
       {upNext.length > 0 && (
         <div className="mb-8">
-          <UpNextPreview previews={upNext} />
+          <UpNextPreview
+            previews={upNext}
+            openCourtNumber={firstOpenCourt?.court_number}
+            onSendToCourt={
+              firstOpenCourt ? () => handleStartNext(firstOpenCourt) : undefined
+            }
+            sending={sendingToCourt}
+          />
         </div>
       )}
 
@@ -508,6 +566,15 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
 
       {showAddPlayer && (
         <AddPlayerModal onAdd={handleAddPlayer} onClose={() => setShowAddPlayer(false)} />
+      )}
+
+      {showChoosePlayersFor && (
+        <ChoosePlayersModal
+          court={showChoosePlayersFor}
+          waiting={waiting}
+          onAssign={handleAssignChosen}
+          onClose={() => setShowChoosePlayersFor(null)}
+        />
       )}
     </div>
   );
