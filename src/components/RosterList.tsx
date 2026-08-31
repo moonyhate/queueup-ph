@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { Player } from "@/lib/types";
 import { skillBadgeColor } from "@/lib/matching";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface Props {
   notArrived: Player[];
@@ -16,6 +18,8 @@ export default function RosterList({
   onCheckInAll,
   onRemove,
 }: Props) {
+  const [confirming, setConfirming] = useState<Player | null>(null);
+
   if (notArrived.length === 0) return null;
 
   return (
@@ -55,7 +59,7 @@ export default function RosterList({
                 Check in
               </button>
               <button
-                onClick={() => onRemove(p)}
+                onClick={() => setConfirming(p)}
                 className="text-xs font-mono uppercase text-red-700 border border-red-700/30 rounded-card px-3 tap-target"
               >
                 Remove
@@ -64,6 +68,19 @@ export default function RosterList({
           </li>
         ))}
       </ul>
+
+      {confirming && (
+        <ConfirmDialog
+          title={`Remove ${confirming.name}?`}
+          message="They'll be taken off the roster entirely. This can't be undone."
+          confirmLabel="Remove"
+          onConfirm={() => {
+            onRemove(confirming);
+            setConfirming(null);
+          }}
+          onCancel={() => setConfirming(null)}
+        />
+      )}
     </div>
   );
 }
