@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
+import { Trophy, LayoutGrid, Users } from "lucide-react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { Court, Player, Session } from "@/lib/types";
 import { skillBadgeColor, previewNextMatches } from "@/lib/matching";
@@ -144,8 +145,9 @@ export default function QueuePage() {
         <div className="flex items-center gap-4">
           <Link
             href="/leaderboard"
-            className="font-mono text-xs sm:text-sm uppercase border border-white/30 rounded-card px-4 py-2"
+            className="flex items-center gap-1.5 font-mono text-xs sm:text-sm uppercase border border-white/30 rounded-card px-4 py-2"
           >
+            <Trophy size={14} />
             Leaderboard
           </Link>
           <div className="hidden sm:flex items-center gap-3">
@@ -167,7 +169,8 @@ export default function QueuePage() {
 
       <main className="px-6 sm:px-10 py-8 grid lg:grid-cols-[1.4fr_1fr] gap-8">
         <section>
-          <h2 className="font-display text-3xl sm:text-4xl leading-none mb-4 text-ball">
+          <h2 className="font-display text-3xl sm:text-4xl leading-none mb-4 text-ball flex items-center gap-2">
+            <LayoutGrid size={26} />
             Courts
           </h2>
           <div className="grid sm:grid-cols-2 gap-4">
@@ -250,7 +253,8 @@ export default function QueuePage() {
             </div>
           )}
 
-          <h2 className="font-display text-3xl sm:text-4xl leading-none mb-4 text-white/70">
+          <h2 className="font-display text-3xl sm:text-4xl leading-none mb-4 text-white/70 flex items-center gap-2">
+            <Users size={26} />
             Waiting queue
           </h2>
           <ol className="space-y-2">
