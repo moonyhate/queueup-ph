@@ -22,7 +22,7 @@ export default function SessionSetup({
   const [saving, setSaving] = useState(false);
 
   return (
-    <div className="border border-line rounded-card bg-white p-6">
+    <div className="border border-line rounded-card bg-white p-6 shadow-md">
       <p className="font-mono text-xs uppercase tracking-wide text-waiting mb-1">
         {isNew ? "New session" : "Session settings"}
       </p>
@@ -38,7 +38,7 @@ export default function SessionSetup({
           className="tap-target w-14 border-2 border-ink rounded-card font-display text-2xl"
           aria-label="Fewer courts"
         >
-          −
+          -
         </button>
         <span className="scoreboard-num text-4xl w-12 text-center">
           {courtCount}
@@ -64,7 +64,7 @@ export default function SessionSetup({
       </p>
 
       <p className="text-xs text-waiting mb-5 border-t border-line pt-4">
-        Fee collection happens in person — this app doesn&apos;t handle payments.
+        Fee collection happens in person -- this app doesn&apos;t handle payments.
       </p>
 
       <button
@@ -76,7 +76,7 @@ export default function SessionSetup({
         }}
         className="tap-target w-full bg-court text-white font-display text-2xl rounded-card disabled:opacity-50"
       >
-        {saving ? "Starting…" : isNew ? "Start session" : "Save changes"}
+        {saving ? "Starting..." : isNew ? "Start session" : "Save changes"}
       </button>
     </div>
   );
