@@ -1,0 +1,226 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { QRCodeSVG } from "qrcode.react";
+import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
+import { Court, Player, Session } from "@/lib/types";
+import { skillBadgeColor } from "@/lib/matching";
+import ElapsedTimer from "@/components/ElapsedTimer";
+
+export default function QueuePage() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [courts, setCourts] = useState<Court[]>([]);
+  const [selfUrl, setSelfUrl] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") setSelfUrl(window.location.href);
+  }, []);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    (async () => {
+      const { data: sessions } = await supabase
+        .from("sessions")
+        .select("*")
+        .eq("active", true)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const active = sessions?.[0] ?? null;
+      setSession(active);
+      if (!active) return;
+
+      await refresh(active.id);
+
+      channel = supabase
+        .channel(`queue-${active.id}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "players", filter: `session_id=eq.${active.id}` },
+          () => refresh(active.id)
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "courts", filter: `session_id=eq.${active.id}` },
+          () => refresh(active.id)
+        )
+        .subscribe();
+    })();
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, []);
+
+  async function refresh(sessionId: string) {
+    const [{ data: p }, { data: c }] = await Promise.all([
+      supabase
+        .from("players")
+        .select("*")
+        .eq("session_id", sessionId)
+        .neq("status", "checked_out")
+        .order("checked_in_at", { ascending: true }),
+      supabase
+        .from("courts")
+        .select("*")
+        .eq("session_id", sessionId)
+        .order("court_number", { ascending: true }),
+    ]);
+    setPlayers(p ?? []);
+    setCourts(c ?? []);
+  }
+
+  const playersById = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
+  const waiting = useMemo(
+    () =>
+      players
+        .filter((p) => p.status === "waiting")
+        .sort((a, b) => new Date(a.checked_in_at).getTime() - new Date(b.checked_in_at).getTime()),
+    [players]
+  );
+  const resting = useMemo(() => players.filter((p) => p.status === "resting"), [players]);
+
+  if (!isSupabaseConfigured) {
+    return (
+      <Screen>
+        <p className="text-2xl">Supabase isn&rsquo;t configured yet.</p>
+      </Screen>
+    );
+  }
+
+  if (!session) {
+    return (
+      <Screen>
+        <p className="text-2xl">No open-play session running right now.</p>
+      </Screen>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-court-dark text-surface">
+      <header className="flex items-center justify-between px-6 sm:px-10 py-6 border-b border-white/10">
+        <div>
+          <span className="font-display text-3xl sm:text-4xl leading-none">QueueUp PH</span>
+          <p className="font-mono text-xs uppercase tracking-wide text-white/50 mt-1">
+            {session.game_format}
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          <Link
+            href="/leaderboard"
+            className="font-mono text-xs sm:text-sm uppercase border border-white/30 rounded-card px-4 py-2"
+          >
+            Leaderboard →
+          </Link>
+          <div className="hidden sm:block bg-white p-2 rounded-card">
+            <QRCodeSVG value={selfUrl || "/"} size={64} />
+          </div>
+        </div>
+      </header>
+
+      <main className="px-6 sm:px-10 py-8 grid lg:grid-cols-[1.4fr_1fr] gap-8">
+        <section>
+          <h2 className="font-display text-3xl sm:text-4xl leading-none mb-4 text-ball">
+            Courts
+          </h2>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {courts.map((court) => {
+              const inProgress = court.status === "in_progress";
+              const teamA = court.team_a?.playerIds.map((id) => playersById.get(id));
+              const teamB = court.team_b?.playerIds.map((id) => playersById.get(id));
+              return (
+                <div
+                  key={court.id}
+                  className={`rounded-card border-2 p-5 ${
+                    inProgress ? "border-progress bg-progress/15" : "border-ball bg-ball/10"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="font-display text-3xl leading-none">
+                      Court {court.court_number}
+                    </span>
+                    {inProgress ? (
+                      <span className="font-mono text-sm text-progress-light text-progress">
+                        <ElapsedTimer startedAt={court.started_at as string} />
+                      </span>
+                    ) : (
+                      <span className="font-mono text-xs uppercase text-ball">Open</span>
+                    )}
+                  </div>
+                  {inProgress && teamA && teamB ? (
+                    <div className="space-y-1 text-lg">
+                      <p>{teamA.map((p) => p?.name).join(" & ")}</p>
+                      <p className="text-white/40 font-mono text-sm">vs</p>
+                      <p>{teamB.map((p) => p?.name).join(" & ")}</p>
+                    </div>
+                  ) : (
+                    <p className="text-white/50">Waiting for players</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <section>
+          <h2 className="font-display text-3xl sm:text-4xl leading-none mb-4 text-white/70">
+            Up next
+          </h2>
+          <ol className="space-y-2">
+            {waiting.map((p, i) => (
+              <li
+                key={p.id}
+                className="flex items-center gap-3 rounded-card bg-white/5 px-4 py-3"
+              >
+                <span className="scoreboard-num text-2xl w-8 text-white/40">{i + 1}</span>
+                <span className="flex-1 text-lg font-medium">{p.name}</span>
+                <span
+                  className={`text-xs px-2 py-1 rounded-card border font-mono bg-transparent ${skillBadgeColor(
+                    p.skill_level
+                  )
+                    .replace("text-court-dark", "text-white")
+                    .replace("text-progress", "text-white")
+                    .replace("text-ink", "text-white")}`}
+                >
+                  {p.skill_level}
+                </span>
+              </li>
+            ))}
+            {waiting.length === 0 && (
+              <p className="text-white/40">No one in line.</p>
+            )}
+          </ol>
+
+          {resting.length > 0 && (
+            <>
+              <h3 className="font-display text-2xl leading-none mt-6 mb-2 text-rest">
+                Resting
+              </h3>
+              <ul className="space-y-1">
+                {resting.map((p) => (
+                  <li key={p.id} className="text-rest/90">
+                    {p.name}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
+      </main>
+    </div>
+  );
+}
+
+function Screen({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-court-dark text-surface flex items-center justify-center px-6 text-center">
+      <div>
+        <p className="font-display text-4xl mb-3">QueueUp PH</p>
+        {children}
+      </div>
+    </div>
+  );
+}
