@@ -2,6 +2,7 @@
 
 import { MatchResult } from "@/lib/matching";
 import { skillBadgeColor } from "@/lib/matching";
+import { Player } from "@/lib/types";
 
 interface Props {
   previews: MatchResult[];
@@ -61,7 +62,7 @@ function TeamLine({
   players,
   dark,
 }: {
-  players: { name: string; skill_level: "Beginner" | "Intermediate" | "Advanced" }[];
+  players: Player[];
   dark: boolean;
 }) {
   return (
