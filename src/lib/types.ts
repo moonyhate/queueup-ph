@@ -1,6 +1,6 @@
 export type SkillLevel = "Beginner" | "Novice" | "Intermediate" | "Advanced";
 
-export type PlayerStatus = "waiting" | "playing" | "resting" | "checked_out";
+export type PlayerStatus = "not_arrived" | "waiting" | "playing" | "resting" | "checked_out";
 
 export interface Session {
   id: string;
