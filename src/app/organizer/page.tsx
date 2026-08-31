@@ -388,7 +388,7 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
         </div>
         <button
           onClick={() => setShowEditSession((s) => !s)}
-          className="text-xs font-mono uppercase border border-ink/30 rounded-card px-3 py-2 tap-target"
+          className="text-xs font-mono uppercase border border-ink/30 rounded-card px-3 py-2 tap-target bg-white shadow-sm hover:shadow-md transition-shadow"
         >
           {showEditSession ? "Close" : "Edit"}
         </button>
@@ -404,25 +404,25 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
         <div className="flex items-center gap-2">
           <Link
             href="/leaderboard"
-            className="text-xs font-mono uppercase border border-ink/30 rounded-card px-3 py-2 tap-target flex items-center"
+            className="text-xs font-mono uppercase border border-ink/30 rounded-card px-3 py-2 tap-target flex items-center bg-white shadow-sm hover:shadow-md transition-shadow"
           >
             Leaderboard
           </Link>
           <button
             onClick={handleCopyQueueLink}
-            className="text-xs font-mono uppercase border border-ink/30 rounded-card px-3 py-2 tap-target"
+            className="text-xs font-mono uppercase border border-ink/30 rounded-card px-3 py-2 tap-target bg-white shadow-sm hover:shadow-md transition-shadow"
           >
             {linkCopied ? "Copied!" : "Share queue link"}
           </button>
           <button
             onClick={handleCopyCheckinLink}
-            className="text-xs font-mono uppercase border border-court/50 text-court rounded-card px-3 py-2 tap-target"
+            className="text-xs font-mono uppercase border border-court/50 text-court rounded-card px-3 py-2 tap-target bg-white shadow-sm hover:shadow-md transition-shadow"
           >
             {checkinLinkCopied ? "Copied!" : "Check-in link"}
           </button>
           <button
             onClick={() => setShowEndConfirm(true)}
-            className="text-xs font-mono uppercase border border-red-700/40 text-red-700 rounded-card px-3 py-2 tap-target"
+            className="text-xs font-mono uppercase border border-red-700/40 text-red-700 rounded-card px-3 py-2 tap-target bg-white shadow-sm hover:shadow-md transition-shadow"
           >
             End session
           </button>
@@ -493,7 +493,7 @@ function OrganizerDashboard({ onLock }: { onLock: () => void }) {
         <div className="max-w-2xl mx-auto flex gap-3">
           <button
             onClick={() => setShowAddPlayer(true)}
-            className="tap-target flex-1 bg-ink text-surface font-display text-2xl rounded-card"
+            className="tap-target flex-1 bg-ink text-surface font-display text-2xl rounded-card shadow-lg hover:shadow-xl transition-shadow"
           >
             + Add player
           </button>
