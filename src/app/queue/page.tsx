@@ -178,31 +178,51 @@ export default function QueuePage() {
               return (
                 <div
                   key={court.id}
-                  className={`rounded-card border-2 p-5 ${
-                    inProgress ? "border-progress bg-progress/15" : "border-ball bg-ball/10"
+                  className={`rounded-card overflow-hidden border-2 shadow-lg ${
+                    inProgress ? "border-progress" : "border-ball"
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="font-display text-3xl leading-none">
+                  <div
+                    className={`flex items-center justify-between px-4 py-3 ${
+                      inProgress ? "bg-progress" : "bg-ball"
+                    }`}
+                  >
+                    <span
+                      className={`font-display text-2xl leading-none ${
+                        inProgress ? "text-white" : "text-ink"
+                      }`}
+                    >
                       Court {court.court_number}
                     </span>
                     {inProgress ? (
-                      <span className="font-mono text-sm text-progress-light text-progress">
+                      <span className="flex items-center gap-2 font-mono text-sm text-white">
+                        <span className="live-dot w-2 h-2 rounded-full bg-white inline-block" />
                         <ElapsedTimer startedAt={court.started_at as string} />
                       </span>
                     ) : (
-                      <span className="font-mono text-xs uppercase text-ball">Open</span>
+                      <span className="font-mono text-xs uppercase text-ink">Open</span>
                     )}
                   </div>
-                  {inProgress && teamA && teamB ? (
-                    <div className="space-y-1 text-lg">
-                      <p>{teamA.map((p) => p?.name).join(" & ")}</p>
-                      <p className="text-white/40 font-mono text-sm">vs</p>
-                      <p>{teamB.map((p) => p?.name).join(" & ")}</p>
-                    </div>
-                  ) : (
-                    <p className="text-white/50">Waiting for players</p>
-                  )}
+                  <div className="bg-court-dark">
+                    {inProgress && teamA && teamB ? (
+                      <div className="grid grid-cols-2">
+                        <div className="px-3 py-3 border-r border-white/10">
+                          <p className="font-mono text-[10px] uppercase tracking-wide text-progress-light text-progress mb-1">
+                            Team A
+                          </p>
+                          <p className="text-lg">{teamA.map((p) => p?.name).join(" & ")}</p>
+                        </div>
+                        <div className="px-3 py-3">
+                          <p className="font-mono text-[10px] uppercase tracking-wide text-rest mb-1">
+                            Team B
+                          </p>
+                          <p className="text-lg">{teamB.map((p) => p?.name).join(" & ")}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-white/50 px-4 py-8 text-center">Waiting for players</p>
+                    )}
+                  </div>
                 </div>
               );
             })}
