@@ -40,9 +40,13 @@ export default function WaitingQueueList({
         {waiting.map((p, i) => (
           <li
             key={p.id}
-            className="flex items-center gap-3 rounded-card border border-line bg-white px-3 py-2"
+            className="flex items-center gap-3 rounded-card border border-line bg-white shadow-sm px-3 py-2"
           >
-            <span className="scoreboard-num text-xl w-7 text-waiting">
+            <span
+              className={`scoreboard-num text-xl w-8 h-8 flex items-center justify-center rounded-full ${
+                i === 0 ? "bg-court text-white" : "text-waiting"
+              }`}
+            >
               {i + 1}
             </span>
             <span className="flex-1 font-medium">{p.name}</span>
@@ -58,13 +62,13 @@ export default function WaitingQueueList({
             </span>
             <button
               onClick={() => onRest(p)}
-              className="text-xs font-mono uppercase text-rest border border-rest/50 rounded-card px-2 py-2 tap-target"
+              className="text-xs font-mono uppercase text-rest border border-rest/50 rounded-card px-2 py-2 tap-target hover:bg-rest/10 transition-colors"
             >
               Rest
             </button>
             <button
               onClick={() => onCheckout(p)}
-              className="text-xs font-mono uppercase text-waiting border border-waiting/40 rounded-card px-2 py-2 tap-target"
+              className="text-xs font-mono uppercase text-waiting border border-waiting/40 rounded-card px-2 py-2 tap-target hover:bg-waiting/10 transition-colors"
             >
               Out
             </button>
@@ -81,7 +85,7 @@ export default function WaitingQueueList({
             {resting.map((p) => (
               <li
                 key={p.id}
-                className="flex items-center gap-3 rounded-card border border-rest/40 bg-rest/5 px-3 py-2"
+                className="flex items-center gap-3 rounded-card border border-rest/40 bg-rest/5 shadow-sm px-3 py-2"
               >
                 <span className="flex-1 font-medium">{p.name}</span>
                 <span
@@ -93,13 +97,13 @@ export default function WaitingQueueList({
                 </span>
                 <button
                   onClick={() => onResume(p)}
-                  className="text-xs font-mono uppercase text-court border border-court/50 rounded-card px-3 py-2 tap-target"
+                  className="text-xs font-mono uppercase text-court border border-court/50 rounded-card px-3 py-2 tap-target hover:bg-court/10 transition-colors"
                 >
                   Back in
                 </button>
                 <button
                   onClick={() => onCheckout(p)}
-                  className="text-xs font-mono uppercase text-waiting border border-waiting/40 rounded-card px-2 py-2 tap-target"
+                  className="text-xs font-mono uppercase text-waiting border border-waiting/40 rounded-card px-2 py-2 tap-target hover:bg-waiting/10 transition-colors"
                 >
                   Out
                 </button>
